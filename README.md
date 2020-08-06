@@ -1,5 +1,7 @@
 安裝方法 : git clone此repository, 接著在eclipse點選左上角的File -> Import -> General -> Existing Projects into workspace -> 選取此資料夾位置 -> finish
+
 使用方法 : 隨便開啟一個java檔後, 點選Run -> Run As -> Run on server, 隨便選擇一個localhost(預設為J2EE Preview at localhost), 就能使用了
+
 目前已實現功能 : 
 1. Read
   (1)http://localhost:8080/service/DemoService.svc/ 顯示EntitySet
