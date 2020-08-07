@@ -67,7 +67,7 @@ public class DemoEdmProvider extends CsdlAbstractEdmProvider {
 		      CsdlProperty lighthouse_number = new CsdlProperty().setName("lighthouse_number").setType(EdmPrimitiveTypeKind.Int32.getFullQualifiedName());
 		      CsdlProperty building_number = new CsdlProperty().setName("building_number").setType(EdmPrimitiveTypeKind.Int32.getFullQualifiedName());
 		      CsdlProperty tide = new CsdlProperty().setName("tide").setType(EdmPrimitiveTypeKind.Double.getFullQualifiedName());
-		      CsdlProperty update = new CsdlProperty().setName("update").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
+		      CsdlProperty update = new CsdlProperty().setName("update").setType(EdmPrimitiveTypeKind.Date.getFullQualifiedName());
 		      
 		      // create PropertyRef for Key element
 		      CsdlPropertyRef propertyRef = new CsdlPropertyRef();
@@ -101,10 +101,10 @@ public class DemoEdmProvider extends CsdlAbstractEdmProvider {
 		      CsdlProperty satellite = new CsdlProperty().setName("satellite").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
 		      CsdlProperty resolution = new CsdlProperty().setName("resolution").setType(EdmPrimitiveTypeKind.Double.getFullQualifiedName());
 		      CsdlProperty band_valuecode = new CsdlProperty().setName("band_valuecode").setType(EdmPrimitiveTypeKind.Int32.getFullQualifiedName());
-		      CsdlProperty time = new CsdlProperty().setName("time").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
-		      CsdlProperty coverage = new CsdlProperty().setName("coverage").setType(EdmPrimitiveTypeKind.GeometryMultiPoint.getFullQualifiedName());
+		      CsdlProperty time = new CsdlProperty().setName("time").setType(EdmPrimitiveTypeKind.DateTimeOffset.getFullQualifiedName());
+		      CsdlProperty coverage = new CsdlProperty().setName("coverage").setType(EdmPrimitiveTypeKind.GeometryPolygon.getFullQualifiedName());
 		      CsdlProperty servicepath = new CsdlProperty().setName("servicepath").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
-		      CsdlProperty ortho_code = new CsdlProperty().setName("ortho_code").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
+		      CsdlProperty code_island = new CsdlProperty().setName("code_island").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
 		      
 		      CsdlPropertyRef propertyRef = new CsdlPropertyRef();
 		      propertyRef.setName("ID");
@@ -121,7 +121,7 @@ public class DemoEdmProvider extends CsdlAbstractEdmProvider {
 		      entityType = new CsdlEntityType();
 		      entityType.setName(ET_IMAGE_NAME);
 		      entityType.setProperties(Arrays.asList(id, code, source, satellite, resolution, 
-		    		  								band_valuecode, time, coverage, servicepath, ortho_code));
+		    		  								band_valuecode, time, coverage, servicepath, code_island));
 		      entityType.setKey(Arrays.asList(propertyRef));
 		      entityType.setNavigationProperties(navPropList);
 		      
@@ -130,22 +130,22 @@ public class DemoEdmProvider extends CsdlAbstractEdmProvider {
 		    	CsdlProperty id = new CsdlProperty().setName("ID").setType(EdmPrimitiveTypeKind.Int32.getFullQualifiedName());
 		    	CsdlProperty code_island = new CsdlProperty().setName("code_island").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
 		    	CsdlProperty code_session = new CsdlProperty().setName("code_session").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
-			    CsdlProperty time_discover = new CsdlProperty().setName("time_discover").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
+			    CsdlProperty time_discover = new CsdlProperty().setName("time_discover").setType(EdmPrimitiveTypeKind.Date.getFullQualifiedName());
 			    CsdlProperty image_discover = new CsdlProperty().setName("image_discover").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
+			    CsdlProperty time_last_nochange = new CsdlProperty().setName("time_last_nochange").setType(EdmPrimitiveTypeKind.Date.getFullQualifiedName());
 			    CsdlProperty image_last_nochange = new CsdlProperty().setName("image_last_nochange").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
-			    CsdlProperty time_last_nochange = new CsdlProperty().setName("time_last_nochange").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
 			    CsdlProperty change_type = new CsdlProperty().setName("change_type").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
 			    CsdlProperty location = new CsdlProperty().setName("location").setType(EdmPrimitiveTypeKind.GeometryPoint.getFullQualifiedName());
 			    CsdlProperty bbox = new CsdlProperty().setName("bbox").setType(EdmPrimitiveTypeKind.GeometryPolygon.getFullQualifiedName());
 			    CsdlProperty description = new CsdlProperty().setName("description").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
-			    CsdlProperty last_modified = new CsdlProperty().setName("last_modified").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
+			    CsdlProperty last_modified = new CsdlProperty().setName("last_modified").setType(EdmPrimitiveTypeKind.Date.getFullQualifiedName());
 			     
 			    CsdlPropertyRef propertyRef = new CsdlPropertyRef();
 			    propertyRef.setName("ID");
 
 			    CsdlNavigationProperty navProp1 = new CsdlNavigationProperty().setName("islands").setType(ET_ISLAND_FQN).setNullable(false).setPartner("changes");
 			    CsdlNavigationProperty navProp2 = new CsdlNavigationProperty().setName("images").setType(ET_IMAGE_FQN).setCollection(true).setPartner("changes");
-			    CsdlNavigationProperty navProp3 = new CsdlNavigationProperty().setName("sessions").setType(ET_SESSION_FQN).setCollection(true).setPartner("changes");
+			    CsdlNavigationProperty navProp3 = new CsdlNavigationProperty().setName("sessions").setType(ET_SESSION_FQN).setNullable(false).setPartner("changes");
 			      
 			    List<CsdlNavigationProperty> navPropList = new ArrayList<CsdlNavigationProperty>();
 			    navPropList.add(navProp1);
@@ -169,13 +169,13 @@ public class DemoEdmProvider extends CsdlAbstractEdmProvider {
 			 CsdlProperty area = new CsdlProperty().setName("area").setType(EdmPrimitiveTypeKind.Double.getFullQualifiedName());
 			 CsdlProperty shoreline_length = new CsdlProperty().setName("shoreline_length").setType(EdmPrimitiveTypeKind.Double.getFullQualifiedName());
 			 CsdlProperty road_length = new CsdlProperty().setName("road_length").setType(EdmPrimitiveTypeKind.Double.getFullQualifiedName());
-			 CsdlProperty runway_length = new CsdlProperty().setName("runway_length").setType(EdmPrimitiveTypeKind.Double.getFullQualifiedName());
+			 CsdlProperty airport_length = new CsdlProperty().setName("airport_length").setType(EdmPrimitiveTypeKind.Double.getFullQualifiedName());
 			 CsdlProperty pier_number = new CsdlProperty().setName("pier_number").setType(EdmPrimitiveTypeKind.Int32.getFullQualifiedName());
 			 CsdlProperty lighthouse_number = new CsdlProperty().setName("lighthouse_number").setType(EdmPrimitiveTypeKind.Int32.getFullQualifiedName());
 			 CsdlProperty building_number = new CsdlProperty().setName("building_number").setType(EdmPrimitiveTypeKind.Int32.getFullQualifiedName());
 			 CsdlProperty tide = new CsdlProperty().setName("tide").setType(EdmPrimitiveTypeKind.Double.getFullQualifiedName());
-			 CsdlProperty start_time = new CsdlProperty().setName("start_time").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
-			 CsdlProperty end_time = new CsdlProperty().setName("end_time").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
+			 CsdlProperty start_date = new CsdlProperty().setName("start_date").setType(EdmPrimitiveTypeKind.Date.getFullQualifiedName());
+			 CsdlProperty end_date = new CsdlProperty().setName("end_date").setType(EdmPrimitiveTypeKind.Date.getFullQualifiedName());
 			 CsdlProperty note = new CsdlProperty().setName("note").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
 			  
 			 CsdlPropertyRef propertyRef = new CsdlPropertyRef();
@@ -183,7 +183,7 @@ public class DemoEdmProvider extends CsdlAbstractEdmProvider {
 			      
 			 CsdlNavigationProperty navProp1 = new CsdlNavigationProperty().setName("islands").setType(ET_ISLAND_FQN).setNullable(false).setPartner("sessions");
 			 CsdlNavigationProperty navProp2 = new CsdlNavigationProperty().setName("images").setType(ET_IMAGE_FQN).setCollection(true).setPartner("sessions");
-			 CsdlNavigationProperty navProp3 = new CsdlNavigationProperty().setName("changes").setType(ET_CHANGE_FQN).setNullable(false).setPartner("sessions");
+			 CsdlNavigationProperty navProp3 = new CsdlNavigationProperty().setName("changes").setType(ET_CHANGE_FQN).setCollection(true).setPartner("sessions");
 			      
 			 List<CsdlNavigationProperty> navPropList = new ArrayList<CsdlNavigationProperty>();
 			 navPropList.add(navProp1);
@@ -193,9 +193,9 @@ public class DemoEdmProvider extends CsdlAbstractEdmProvider {
 			 entityType = new CsdlEntityType();
 			 entityType.setName(ET_SESSION_NAME);
 			 entityType.setProperties(Arrays.asList(id, code_island, code, boundary, area, 
-			  	  								shoreline_length, road_length, runway_length, pier_number, 
-		 		  								lighthouse_number, building_number, tide, start_time, 
-		   		  								end_time, note));
+			  	  								shoreline_length, road_length, airport_length, pier_number, 
+		 		  								lighthouse_number, building_number, tide, start_date, 
+		   		  								end_date, note));
 			entityType.setKey(Arrays.asList(propertyRef));
 			entityType.setNavigationProperties(navPropList);
 		    }
