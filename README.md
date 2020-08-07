@@ -1,6 +1,6 @@
-安裝方法 : git clone此repository, 接著開啟eclipse並點選左上角的File -> Import -> General -> Existing Projects into workspace -> 選取此資料夾位置 -> finish
+安裝方法 : git clone此repository, 接著開啟eclipse並點選左上角的File -> Import -> General -> Existing Projects into workspace -> 選取service資料夾 -> finish
 
-使用方法 : 隨便開啟一個java檔後, 點選Run -> Run As -> Run on server, 隨便選擇一個localhost(預設為J2EE Preview at localhost), 就能使用了
+使用方法(使用前記得先project->clean) : 隨便開啟一個java檔後, 點選Run -> Run As -> Run on server, 隨便選擇一個localhost(預設為J2EE Preview at localhost), 就能使用了
 
 目前已實現功能 : 
 1. Read
@@ -51,10 +51,6 @@
 
 1. query option的orderby與filter
 
-2. date型態資料目前以string代替
+2. image entity的code欄位目前僅能儲存一個island
 
-3. sessions(id)/images
-
-4. changes(id)/images
-
-5. image entity的code欄位目前僅能儲存一個island
+3. 能不要一個一個輸入資料的方式, 改用抓excel檔
