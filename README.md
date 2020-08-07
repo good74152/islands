@@ -1,6 +1,6 @@
 安裝方法 : git clone此repository, 接著開啟eclipse並點選左上角的File -> Import -> General -> Existing Projects into workspace -> 選取service資料夾 -> finish
 
-使用方法 : 隨便開啟一個java檔後, 點選Run -> Run As -> Run on server, 隨便選擇一個localhost(預設為J2EE Preview at localhost), 就能使用了
+使用方法(使用前記得先project->clean) : 隨便開啟一個java檔後, 點選Run -> Run As -> Run on server, 隨便選擇一個localhost(預設為J2EE Preview at localhost), 就能使用了
 
 目前已實現功能 : 
 1. Read
