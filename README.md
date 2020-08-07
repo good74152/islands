@@ -51,10 +51,6 @@
 
 1. query option的orderby與filter
 
-2. date型態資料目前以string代替
+2. image entity的code欄位目前僅能儲存一個island
 
-3. sessions(id)/images
-
-4. changes(id)/images
-
-5. image entity的code欄位目前僅能儲存一個island
+3. 能不要一個一個輸入資料的方式, 改用抓excel檔
