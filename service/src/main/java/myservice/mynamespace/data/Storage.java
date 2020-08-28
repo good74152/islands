@@ -1,5 +1,10 @@
 package myservice.mynamespace.data;
 
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.text.ParseException;
@@ -8,6 +13,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.apache.olingo.commons.api.data.Entity;
 import org.apache.olingo.commons.api.data.EntityCollection;
 import org.apache.olingo.commons.api.data.Property;
@@ -20,6 +28,9 @@ import org.apache.olingo.commons.api.edm.geo.Point;
 import org.apache.olingo.commons.api.edm.geo.Polygon;
 import org.apache.olingo.commons.api.ex.ODataRuntimeException;
 import org.apache.olingo.server.api.uri.UriParameter;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import myservice.mynamespace.service.DemoEdmProvider;
 import myservice.mynamespace.util.Util;
@@ -31,7 +42,7 @@ public class Storage {
 	private List<Entity> changeList;
 	private List<Entity> sessionList;
 	
-	public Storage() {
+	public Storage() throws FileNotFoundException, IOException {
 		islandList = new ArrayList<Entity>();
 		imageList = new ArrayList<Entity>();
 		changeList = new ArrayList<Entity>();
@@ -43,36 +54,112 @@ public class Storage {
 	    initChangeSampleData();
 	    initSessionSampleData();
 	}
-
+	
 	@SuppressWarnings("deprecation")
-	private void initIslandSampleData() {
+	private void initIslandSampleData() throws FileNotFoundException, IOException {
 		Entity entity = new Entity();
-		entity.addProperty(new Property(null, "ID", ValueType.PRIMITIVE, 1));
-		entity.addProperty(new Property(null, "code", ValueType.PRIMITIVE, "SS039"));
-		entity.addProperty(new Property(null, "name_tw", ValueType.PRIMITIVE, "南威島"));
-		entity.addProperty(new Property(null, "name_cn", ValueType.PRIMITIVE, "南威島"));
-		entity.addProperty(new Property(null, "location", ValueType.GEOSPATIAL, createPoint(1.5,4.25)));
-		entity.addProperty(new Property(null, "description", ValueType.PRIMITIVE, "南威島位於尹慶群礁西南方約 35 公里處"));
-		entity.addProperty(new Property(null, "boundary", ValueType.GEOSPATIAL, new Polygon(Dimension.GEOMETRY, null, null,
-																							Arrays.asList(
-																									createPoint(111.91591109198832, 8.64644393402341), 
-																									createPoint(111.92515891519959, 8.650160014824982), 
-																									createPoint(111.92471633486925, 8.641971844384928), 
-																									createPoint(111.91597783732857, 8.64005358122585), 
-																									createPoint(111.91591109198832, 8.64644393402341)))));
-		entity.addProperty(new Property(null, "area", ValueType.PRIMITIVE, 0.38));
-		entity.addProperty(new Property(null, "shoreline_length", ValueType.PRIMITIVE, 4.68));
-		entity.addProperty(new Property(null, "road_length", ValueType.PRIMITIVE, 3.51));
-		entity.addProperty(new Property(null, "airport_length", ValueType.PRIMITIVE, 1.21));
-		entity.addProperty(new Property(null, "pier_number", ValueType.PRIMITIVE, 6));
-		entity.addProperty(new Property(null, "lighthouse_number", ValueType.PRIMITIVE, 1));
-		entity.addProperty(new Property(null, "building_number", ValueType.PRIMITIVE, 298));
-		entity.addProperty(new Property(null, "tide", ValueType.PRIMITIVE, -0.44));
-		entity.addProperty(new Property(null, "update", ValueType.PRIMITIVE, createDate("2020/02/12")));
 		
-		entity.setType(DemoEdmProvider.ET_ISLAND_FQN.getFullQualifiedNameAsString());
-	    entity.setId(createId(entity, "ID"));
-	    islandList.add(entity);
+		File file = new File(System.getProperty("user.home")+"/Desktop"+"/data"); //存取目前路徑
+		int global_row_num = 1; //此為所有資料表中的row個數
+		
+		if (file.isDirectory()) {
+			String[]all_file = file.list(); //得到路徑下所有檔案目錄
+			for(String filename:all_file) {
+				String filetype = filename.substring(filename.lastIndexOf(".")+1, filename.length());
+				if(filetype.equals("xlsx")) {//只存取xlsx檔案
+					FileInputStream xlsx = new FileInputStream(new File(System.getProperty("user.home")+"/Desktop"+"/data"+"//"+filename));
+					XSSFWorkbook workbook = new XSSFWorkbook(xlsx);
+					XSSFSheet sheet = workbook.getSheetAt(0);
+					int row_num = sheet.getLastRowNum()+1; //此為一個sheet中的row個數
+					for (int row_index=1; row_index<row_num; row_index++) {
+						
+						Row row = sheet.getRow(row_index);
+						
+						entity = new Entity();
+						
+						entity.addProperty(new Property(null, "ID", ValueType.PRIMITIVE, global_row_num));//加入id屬性
+						if (row.getCell(0)!=null) {
+							entity.addProperty(new Property(null, "code", ValueType.PRIMITIVE, row.getCell(0).getStringCellValue().trim()));
+						}
+						if (row.getCell(1)!=null) {
+							entity.addProperty(new Property(null, "name_tw", ValueType.PRIMITIVE, row.getCell(1).getStringCellValue().trim()));
+						}
+						if (row.getCell(2)!=null) {
+							entity.addProperty(new Property(null, "name_cn", ValueType.PRIMITIVE, row.getCell(2).getStringCellValue().trim()));
+						}
+						if (row.getCell(3)!=null) {
+							String location_tuple = row.getCell(3).toString().split("[\\(\\)]")[1];
+							String[] location_coord = location_tuple.split(" ");
+							List<Double> list = Arrays.asList(Double.parseDouble(location_coord[0]), Double.parseDouble(location_coord[1]));
+							
+							entity.addProperty(new Property(null, "location", ValueType.GEOSPATIAL, createPoint(list.get(0),list.get(1))));
+						}
+						if (row.getCell(4)!=null) {
+							entity.addProperty(new Property(null, "description", ValueType.PRIMITIVE, row.getCell(4).toString().trim()));
+						}
+						if (row.getCell(5)!=null) {
+							Matcher m = Pattern.compile("\\((([^)]+)\\))").matcher(row.getCell(5).toString());
+							if(m.find()) {
+								String polygon_list = m.group(1).toString().split("[\\(\\)]")[1];
+							    String[] polygon_tuple = polygon_list.split(",");
+							    List<Double> list = new ArrayList<Double>();
+							    
+							    for (String s:polygon_tuple) {
+							    	//System.out.println(s.toString().trim());
+							    	String clean_s = s.toString().trim();
+							    	String[] polygon_coord = clean_s.split(" ");
+							    	list.add(Double.parseDouble(polygon_coord[0]));
+							    	list.add(Double.parseDouble(polygon_coord[1]));
+							    }
+							    entity.addProperty(new Property(null, "boundary", ValueType.GEOSPATIAL, new Polygon(Dimension.GEOMETRY, null, null,
+										Arrays.asList(
+												createPoint(list.get(0), list.get(1)), 
+												createPoint(list.get(2), list.get(3)), 
+												createPoint(list.get(4), list.get(5)), 
+												createPoint(list.get(6), list.get(7)), 
+												createPoint(list.get(8), list.get(9))))));
+							}
+						}
+						if (row.getCell(6)!=null) {
+							entity.addProperty(new Property(null, "area", ValueType.PRIMITIVE, row.getCell(6).getNumericCellValue()));
+						}
+						if (row.getCell(7)!=null) {
+							entity.addProperty(new Property(null, "shoreline_length", ValueType.PRIMITIVE, row.getCell(7).getNumericCellValue()));
+						}
+						if (row.getCell(8)!=null) {
+							entity.addProperty(new Property(null, "hardstand_number", ValueType.PRIMITIVE, (int)row.getCell(8).getNumericCellValue()));
+						}
+						if (row.getCell(9)!=null) {
+							entity.addProperty(new Property(null, "road_length", ValueType.PRIMITIVE, row.getCell(9).getNumericCellValue()));
+						}
+						if (row.getCell(10)!=null) {
+							entity.addProperty(new Property(null, "airport_length", ValueType.PRIMITIVE, row.getCell(10).getNumericCellValue()));
+						}
+						if (row.getCell(11)!=null) {
+							entity.addProperty(new Property(null, "pier_number", ValueType.PRIMITIVE, (int)row.getCell(11).getNumericCellValue()));
+						}
+						if (row.getCell(12)!=null) {
+							entity.addProperty(new Property(null, "lighthouse_number", ValueType.PRIMITIVE, (int)row.getCell(12).getNumericCellValue()));
+						}
+						if (row.getCell(13)!=null) {
+							entity.addProperty(new Property(null, "building_number", ValueType.PRIMITIVE, (int)row.getCell(13).getNumericCellValue()));
+						}
+						if (row.getCell(14)!=null) {
+							entity.addProperty(new Property(null, "tide", ValueType.PRIMITIVE, row.getCell(14).getNumericCellValue()));
+						}
+						if (row.getCell(15)!=null) {
+							entity.addProperty(new Property(null, "update", ValueType.PRIMITIVE, row.getCell(15).getDateCellValue()));
+						}
+						entity.setType(DemoEdmProvider.ET_ISLAND_FQN.getFullQualifiedNameAsString());
+					    entity.setId(createId(entity, "ID"));
+					    islandList.add(entity);
+					    
+					    global_row_num++;
+					}
+				}
+			}
+		}
+		
 	}
 	
 
@@ -89,72 +176,92 @@ public class Storage {
 	}
 
 	@SuppressWarnings("deprecation")
-	private void initImageSampleData() {
+	private void initImageSampleData() throws FileNotFoundException, IOException {
 		Entity entity = new Entity();
-		entity.addProperty(new Property(null, "ID", ValueType.PRIMITIVE, 1));
-		entity.addProperty(new Property(null, "code", ValueType.PRIMITIVE, "WV3_20180318_F6944_1"));
-		entity.addProperty(new Property(null, "source", ValueType.PRIMITIVE, "107NSB1"));
-		entity.addProperty(new Property(null, "satellite", ValueType.PRIMITIVE, "WorldView-3"));
-		entity.addProperty(new Property(null, "resolution", ValueType.PRIMITIVE, 0.3));
-		entity.addProperty(new Property(null, "band_valuecode", ValueType.PRIMITIVE, 5));
-		entity.addProperty(new Property(null, "time", ValueType.PRIMITIVE, createDateTime("2018-03-18T03:31:37")));
-		entity.addProperty(new Property(null, "coverage", ValueType.GEOSPATIAL, new Polygon(Dimension.GEOMETRY, null, null,
-																													Arrays.asList(
-																															createPoint(111.912053762446, 8.65912445626707),
-																															createPoint(111.931337174151, 8.65912445626707),
-																															createPoint(111.931337174151, 8.63739653008216),
-																															createPoint(111.912053762446, 8.63739653008216),
-																															createPoint(111.912053762446, 8.65912445626707)))));
-		entity.addProperty(new Property(null, "servicepath", ValueType.PRIMITIVE, "http://140.115.110.11/SS039/wmts/WV3_20180318_F6944_1_3857/{z}/{x}/{y}.png"));
-		entity.addProperty(new Property(null, "code_island", ValueType.PRIMITIVE, "SS039"));
 		
-		entity.setType(DemoEdmProvider.ET_IMAGE_FQN.getFullQualifiedNameAsString());
-	    entity.setId(createId(entity, "ID"));
-	    imageList.add(entity);
+		File file = new File(System.getProperty("user.home")+"/Desktop"+"/data"); //存取目前路徑
+		int global_row_num = 1; //此為所有資料表中的row個數
+		
+		if (file.isDirectory()) {
+			String[]all_file = file.list(); //得到路徑下所有檔案目錄
+			for(String filename:all_file) {
+				String filetype = filename.substring(filename.lastIndexOf(".")+1, filename.length());
+				if(filetype.equals("xlsx")) {//只存取xlsx檔案
+					FileInputStream xlsx = new FileInputStream(new File(System.getProperty("user.home")+"/Desktop"+"/data"+"//"+filename));
+					XSSFWorkbook workbook = new XSSFWorkbook(xlsx);
+					XSSFSheet sheet = workbook.getSheetAt(1);
+					int row_num = sheet.getLastRowNum()+1; //此為一個sheet中的row個數
+					for (int row_index=1; row_index<row_num; row_index++) {
+						Row row = sheet.getRow(row_index);
+						
+						entity = new Entity();
+						
+						entity.addProperty(new Property(null, "ID", ValueType.PRIMITIVE, global_row_num));//加入id屬性
+						
+						if (row.getCell(0)!=null) {
+							entity.addProperty(new Property(null, "code", ValueType.PRIMITIVE, row.getCell(0).getStringCellValue().trim()));
+						}
+						if (row.getCell(1)!=null) {
+							entity.addProperty(new Property(null, "source", ValueType.PRIMITIVE, row.getCell(1).getStringCellValue().trim()));
+						}
+						if (row.getCell(2)!=null) {
+							entity.addProperty(new Property(null, "satellite", ValueType.PRIMITIVE, row.getCell(2).getStringCellValue().trim()));
+						}
+						if (row.getCell(3)!=null) {
+							entity.addProperty(new Property(null, "resolution", ValueType.PRIMITIVE, row.getCell(3).getNumericCellValue()));
+						}
+						if (row.getCell(4)!=null) {
+							entity.addProperty(new Property(null, "band_valuecode", ValueType.PRIMITIVE, (int)row.getCell(4).getNumericCellValue()));
+						}
+						if (row.getCell(5)!=null) {
+							entity.addProperty(new Property(null, "time", ValueType.PRIMITIVE, createDateTime(row.getCell(5).toString().trim())));
+						}
+						if (row.getCell(6)!=null) {
+							Matcher m = Pattern.compile("\\((([^)]+)\\))").matcher(row.getCell(6).toString());
+							if(m.find()) {
+								String polygon_list = m.group(1).toString().split("[\\(\\)]")[1];
+							    String[] polygon_tuple = polygon_list.split(",");
+							    List<Double> list = new ArrayList<Double>();
+							    
+							    for (String s:polygon_tuple) {
+							    	//System.out.println(s.toString().trim());
+							    	String clean_s = s.toString().trim();
+							    	String[] polygon_coord = clean_s.split(" ");
+							    	list.add(Double.parseDouble(polygon_coord[0]));
+							    	list.add(Double.parseDouble(polygon_coord[1]));
+							    }
+							    entity.addProperty(new Property(null, "coverage", ValueType.GEOSPATIAL, new Polygon(Dimension.GEOMETRY, null, null,
+										Arrays.asList(
+												createPoint(list.get(0), list.get(1)), 
+												createPoint(list.get(2), list.get(3)), 
+												createPoint(list.get(4), list.get(5)), 
+												createPoint(list.get(6), list.get(7)), 
+												createPoint(list.get(8), list.get(9))))));
+							}
+						}
+						if (row.getCell(7)!=null) {
+							entity.addProperty(new Property(null, "servicepath", ValueType.PRIMITIVE, row.getCell(7).getStringCellValue().trim()));
+						}
+						if (row.getCell(8)!=null) {
+							entity.addProperty(new Property(null, "code_island", ValueType.PRIMITIVE, row.getCell(8).getStringCellValue().trim()));
+						}
+						
+						entity.setType(DemoEdmProvider.ET_IMAGE_FQN.getFullQualifiedNameAsString());
+					    entity.setId(createId(entity, "ID"));
+					    if(entity.getProperty("code")!=null && entity.getProperty("source")!=null && entity.getProperty("satellite")!=null
+					    		&& entity.getProperty("resolution")!=null && entity.getProperty("band_valuecode")!=null && entity.getProperty("coverage")!=null
+					    		&& entity.getProperty("servicepath")!=null) { //image常出現問題
+					    	imageList.add(entity);
+					    	global_row_num++;
+					    }
+					    
+					    
+					}
+				}
+			}	
+		}		
+		
 	    
-	    entity = new Entity();
-		entity.addProperty(new Property(null, "ID", ValueType.PRIMITIVE, 2));
-		entity.addProperty(new Property(null, "code", ValueType.PRIMITIVE, "WV2_20180511_F7190"));
-		entity.addProperty(new Property(null, "source", ValueType.PRIMITIVE, "107NSB2"));
-		entity.addProperty(new Property(null, "satellite", ValueType.PRIMITIVE, "WorldView-2"));
-		entity.addProperty(new Property(null, "resolution", ValueType.PRIMITIVE, 0.4));
-		entity.addProperty(new Property(null, "band_valuecode", ValueType.PRIMITIVE, 5));
-		entity.addProperty(new Property(null, "time", ValueType.PRIMITIVE, createDateTime("2018-05-11T03:31:38")));
-		entity.addProperty(new Property(null, "coverage", ValueType.GEOSPATIAL, new Polygon(Dimension.GEOMETRY, null, null,
-																													Arrays.asList(
-																															createPoint(111.912053309109, 8.65912490889788),
-																															createPoint(111.931336714206, 8.65912490889788),
-																															createPoint(111.931336714206, 8.63739426951417),
-																															createPoint(111.912053309109, 8.63739426951417),
-																															createPoint(111.912053309109, 8.65912490889788)))));
-		entity.addProperty(new Property(null, "servicepath", ValueType.PRIMITIVE, "http://140.115.110.11/SS039/wmts/WV2_20180511_F7190_3857/{z}/{x}/{y}.png"));
-		entity.addProperty(new Property(null, "code_island", ValueType.PRIMITIVE, "SS039"));
-		
-		entity.setType(DemoEdmProvider.ET_IMAGE_FQN.getFullQualifiedNameAsString());
-	    entity.setId(createId(entity, "ID"));
-	    imageList.add(entity);
-	    
-	    entity = new Entity();
-		entity.addProperty(new Property(null, "ID", ValueType.PRIMITIVE, 3));
-		entity.addProperty(new Property(null, "code", ValueType.PRIMITIVE, "WV2_20180511_APGT-45390-20180511032138-01"));
-		entity.addProperty(new Property(null, "source", ValueType.PRIMITIVE, "107MND1"));
-		entity.addProperty(new Property(null, "satellite", ValueType.PRIMITIVE, "WorldView-2"));
-		entity.addProperty(new Property(null, "resolution", ValueType.PRIMITIVE, 0.5));
-		entity.addProperty(new Property(null, "band_valuecode", ValueType.PRIMITIVE, 5));
-		entity.addProperty(new Property(null, "time", ValueType.PRIMITIVE, createDateTime("2018-05-11T03:21:38")));
-		entity.addProperty(new Property(null, "coverage", ValueType.GEOSPATIAL, new Polygon(Dimension.GEOMETRY, null, null,
-																													Arrays.asList(
-																															createPoint(111.912052855772, 8.65912536218678),
-																															createPoint(111.931339898315, 8.65912536218678),
-																															createPoint(111.931339898315, 8.63739561839544),
-																															createPoint(111.912052855772, 8.63739561839544),
-																															createPoint(111.912052855772, 8.65912536218678)))));
-		entity.addProperty(new Property(null, "servicepath", ValueType.PRIMITIVE, "http://140.115.110.11/SS039/wmts/WV2_20180511_APGT-45390-20180511032138-01_3857/{z}/{x}/{y}.png"));
-		entity.addProperty(new Property(null, "code_island", ValueType.PRIMITIVE, "SS039"));
-		
-		entity.setType(DemoEdmProvider.ET_IMAGE_FQN.getFullQualifiedNameAsString());
-	    entity.setId(createId(entity, "ID"));
-	    imageList.add(entity);
 	}
 
 	private Date createDateTime(String string) {
@@ -170,165 +277,209 @@ public class Storage {
 	}
 
 	@SuppressWarnings("deprecation")
-	private void initChangeSampleData() {
+	private void initChangeSampleData() throws FileNotFoundException, IOException {
 		Entity entity = new Entity();
-		entity.addProperty(new Property(null, "ID", ValueType.PRIMITIVE, 1));
-		entity.addProperty(new Property(null, "code_island", ValueType.PRIMITIVE, "SS039"));
-		entity.addProperty(new Property(null, "code_session", ValueType.PRIMITIVE, "107-2"));
-		entity.addProperty(new Property(null, "time_discover", ValueType.PRIMITIVE, createDate("2018/3/18")));
-		entity.addProperty(new Property(null, "image_discover", ValueType.PRIMITIVE, "http://140.115.110.11/SS039/wmts/WV3_20180318_F6944_1_3857/{z}/{x}/{y}.png"));
-		entity.addProperty(new Property(null, "time_last_nochange", ValueType.PRIMITIVE, createDate("2017/9/16")));
-		entity.addProperty(new Property(null, "image_last_nochange", ValueType.PRIMITIVE, "WV2_20170916_E3726"));
-		entity.addProperty(new Property(null, "change_type", ValueType.PRIMITIVE, "永久性房屋"));
-		entity.addProperty(new Property(null, "location", ValueType.GEOSPATIAL, createPoint(111.91849734013103, 8.64405619070411)));
-		entity.addProperty(new Property(null, "bbox", ValueType.GEOSPATIAL, new Polygon(Dimension.GEOMETRY, null, null,
-																							Arrays.asList(createPoint(111.9183544561776, 8.644233610469922), 
-																											createPoint(111.91869496953971, 8.644170280413192), 
-																											createPoint(111.9186402239448, 8.643878770897347), 
-																											createPoint(111.91829971082501, 8.643942100879977), 
-																											createPoint(111.9183544561776, 8.644233610469922)))));
-		entity.addProperty(new Property(null, "description", ValueType.PRIMITIVE, "永久性房屋增建1棟"));
-		entity.addProperty(new Property(null, "last_modified", ValueType.PRIMITIVE, createDate("2018/6/5")));
 		
+		File file = new File(System.getProperty("user.home")+"/Desktop"+"/data"); //存取目前路徑
+		int global_row_num = 1; //此為所有資料表中的row個數
 		
-		entity.setType(DemoEdmProvider.ET_CHANGE_FQN.getFullQualifiedNameAsString());
-	    entity.setId(createId(entity, "ID"));
-	    changeList.add(entity);
-	    
-	    entity = new Entity();
-		entity.addProperty(new Property(null, "ID", ValueType.PRIMITIVE, 2));
-		entity.addProperty(new Property(null, "code_island", ValueType.PRIMITIVE, "SS039"));
-		entity.addProperty(new Property(null, "code_session", ValueType.PRIMITIVE, "107-2"));
-		entity.addProperty(new Property(null, "time_discover", ValueType.PRIMITIVE, createDate("2018/3/18")));
-		entity.addProperty(new Property(null, "image_discover", ValueType.PRIMITIVE, "http://140.115.110.11/SS039/wmts/WV3_20180318_F6944_1_3857/{z}/{x}/{y}.png"));
-		entity.addProperty(new Property(null, "time_last_nochange", ValueType.PRIMITIVE, createDate("2017/9/16")));
-		entity.addProperty(new Property(null, "image_last_nochange", ValueType.PRIMITIVE, "WV2_20170916_E3726"));
-		entity.addProperty(new Property(null, "change_type", ValueType.PRIMITIVE, "永久性房屋"));
-		entity.addProperty(new Property(null, "location", ValueType.GEOSPATIAL, createPoint(111.921623441623, 8.645572500073312)));
-		entity.addProperty(new Property(null, "bbox", ValueType.GEOSPATIAL, new Polygon(Dimension.GEOMETRY, null, null,
-																							Arrays.asList(createPoint(111.92150438819819, 8.645698077786006), 
-																											createPoint(111.9217437807868, 8.645687389222877), 
-																											createPoint(111.92174465477689, 8.645453358339374), 
-																											createPoint(111.92150523094932, 8.645451125117123), 
-																											createPoint(111.92150438819819, 8.645698077786006)))));
-		entity.addProperty(new Property(null, "description", ValueType.PRIMITIVE, "永久性房屋增建1棟"));
-		entity.addProperty(new Property(null, "last_modified", ValueType.PRIMITIVE, createDate("2018/6/5")));
-		
-		
-		entity.setType(DemoEdmProvider.ET_CHANGE_FQN.getFullQualifiedNameAsString());
-	    entity.setId(createId(entity, "ID"));
-	    changeList.add(entity);
-	    
-	    entity = new Entity();
-		entity.addProperty(new Property(null, "ID", ValueType.PRIMITIVE, 3));
-		entity.addProperty(new Property(null, "code_island", ValueType.PRIMITIVE, "SS039"));
-		entity.addProperty(new Property(null, "code_session", ValueType.PRIMITIVE, "107-2"));
-		entity.addProperty(new Property(null, "time_discover", ValueType.PRIMITIVE, createDate("2018/3/18")));
-		entity.addProperty(new Property(null, "image_discover", ValueType.PRIMITIVE, "http://140.115.110.11/SS039/wmts/WV3_20180318_F6944_1_3857/{z}/{x}/{y}.png"));
-		entity.addProperty(new Property(null, "time_last_nochange", ValueType.PRIMITIVE, createDate("2017/9/16")));
-		entity.addProperty(new Property(null, "image_last_nochange", ValueType.PRIMITIVE, "WV2_20170916_E3726"));
-		entity.addProperty(new Property(null, "change_type", ValueType.PRIMITIVE, "其它地物類別"));
-		entity.addProperty(new Property(null, "location", ValueType.GEOSPATIAL, createPoint(111.91908963100654, 8.64702176106863)));
-		entity.addProperty(new Property(null, "bbox", ValueType.GEOSPATIAL, new Polygon(Dimension.GEOMETRY, null, null,
-																							Arrays.asList(createPoint(111.91831829598017, 8.647770099456459), 
-																											createPoint(111.92002512474889, 8.647586531961165), 
-																											createPoint(111.91984540343111, 8.646260820047853), 
-																											createPoint(111.91815883940015, 8.646466332563492), 
-																											createPoint(111.91831829598017, 8.647770099456459)))));
-		entity.addProperty(new Property(null, "description", ValueType.PRIMITIVE, "建物屋頂加裝太陽能板"));
-		entity.addProperty(new Property(null, "last_modified", ValueType.PRIMITIVE, createDate("2018/6/5")));
-		
-		
-		entity.setType(DemoEdmProvider.ET_CHANGE_FQN.getFullQualifiedNameAsString());
-	    entity.setId(createId(entity, "ID"));
-	    changeList.add(entity);
+		if (file.isDirectory()) {
+			String[]all_file = file.list(); //得到路徑下所有檔案目錄
+			for(String filename:all_file) {
+				String filetype = filename.substring(filename.lastIndexOf(".")+1, filename.length());
+				if(filetype.equals("xlsx")) {//只存取xlsx檔案
+					FileInputStream xlsx = new FileInputStream(new File(System.getProperty("user.home")+"/Desktop"+"/data"+"//"+filename));
+					XSSFWorkbook workbook = new XSSFWorkbook(xlsx);
+					XSSFSheet sheet = workbook.getSheetAt(2);
+					int row_num = sheet.getLastRowNum()+1; //此為一個sheet中的row個數
+					for (int row_index=1; row_index<row_num; row_index++) {
+						Row row = sheet.getRow(row_index);
+						
+						entity = new Entity();
+						
+						entity.addProperty(new Property(null, "ID", ValueType.PRIMITIVE, global_row_num));//加入id屬性
+						
+						if (row.getCell(0)!=null) {
+							entity.addProperty(new Property(null, "code_island", ValueType.PRIMITIVE, row.getCell(0).getStringCellValue().trim()));
+						}
+						
+						if (row.getCell(1)!=null) {
+							entity.addProperty(new Property(null, "code_session", ValueType.PRIMITIVE, row.getCell(1).getStringCellValue().trim()));
+						}
+						if (row.getCell(2)!=null) {
+							entity.addProperty(new Property(null, "time_discover", ValueType.PRIMITIVE, row.getCell(2).getDateCellValue()));
+						}
+						if (row.getCell(3)!=null) {
+							entity.addProperty(new Property(null, "image_discover", ValueType.PRIMITIVE, row.getCell(3).getStringCellValue()));
+						}
+						if (row.getCell(4)!=null) {
+							entity.addProperty(new Property(null, "time_last_nochange", ValueType.PRIMITIVE, row.getCell(4).getDateCellValue()));
+						}
+						if (row.getCell(5)!=null) {
+							entity.addProperty(new Property(null, "image_last_nochange", ValueType.PRIMITIVE, row.getCell(5).getStringCellValue()));
+						}
+						if (row.getCell(6)!=null) {
+							entity.addProperty(new Property(null, "change_type", ValueType.PRIMITIVE, row.getCell(6).getStringCellValue()));
+						}
+						if (row.getCell(7)!=null) {
+							String location_tuple = row.getCell(7).toString().split("[\\(\\)]")[1];
+							String[] location_coord = location_tuple.split(" ");
+							List<Double> list = Arrays.asList(Double.parseDouble(location_coord[0]), Double.parseDouble(location_coord[1]));
+							
+							entity.addProperty(new Property(null, "location", ValueType.GEOSPATIAL, createPoint(list.get(0),list.get(1))));
+						}
+						if (row.getCell(8)!=null) {
+							Matcher m = Pattern.compile("\\((([^)]+)\\))").matcher(row.getCell(8).toString());
+							if(m.find()) {
+								String polygon_list = m.group(1).toString().split("[\\(\\)]")[1];
+							    String[] polygon_tuple = polygon_list.split(",");
+							    List<Double> list = new ArrayList<Double>();
+							    
+							    for (String s:polygon_tuple) {
+							    	//System.out.println(s.toString().trim());
+							    	String clean_s = s.toString().trim();
+							    	String[] polygon_coord = clean_s.split(" ");
+							    	list.add(Double.parseDouble(polygon_coord[0]));
+							    	list.add(Double.parseDouble(polygon_coord[1]));
+							    }
+							    entity.addProperty(new Property(null, "bbox", ValueType.GEOSPATIAL, new Polygon(Dimension.GEOMETRY, null, null,
+										Arrays.asList(
+												createPoint(list.get(0), list.get(1)), 
+												createPoint(list.get(2), list.get(3)), 
+												createPoint(list.get(4), list.get(5)), 
+												createPoint(list.get(6), list.get(7)), 
+												createPoint(list.get(8), list.get(9))))));
+							}
+						}
+						if (row.getCell(9)!=null) {
+							entity.addProperty(new Property(null, "description", ValueType.PRIMITIVE, row.getCell(9).getStringCellValue()));
+						}
+						if (row.getCell(10)!=null) {
+							entity.addProperty(new Property(null, "last_modified", ValueType.PRIMITIVE, row.getCell(10).getDateCellValue()));
+						}
+						
+						entity.setType(DemoEdmProvider.ET_CHANGE_FQN.getFullQualifiedNameAsString());
+					    entity.setId(createId(entity, "ID"));
+					    if(entity.getProperty("code_island")!=null && entity.getProperty("code_session")!=null && entity.getProperty("time_discover")!=null
+					    		&& entity.getProperty("image_discover")!=null && entity.getProperty("time_last_nochange")!=null && entity.getProperty("image_last_nochange")!=null
+					    	 && entity.getProperty("location")!=null && entity.getProperty("bbox")!=null
+					    	&& entity.getProperty("last_modified")!=null) { //image常出現問題
+					    	changeList.add(entity);
+					    	global_row_num++;
+					    }
+					  
+					}
+				}
+			}
+		}
+						
 	}
 
 	@SuppressWarnings("deprecation")
-	private void initSessionSampleData() {
+	private void initSessionSampleData() throws FileNotFoundException, IOException {
 		Entity entity = new Entity();
-		entity.addProperty(new Property(null, "ID", ValueType.PRIMITIVE, 1));
-		entity.addProperty(new Property(null, "code_island", ValueType.PRIMITIVE, "SS039"));
-		entity.addProperty(new Property(null, "code", ValueType.PRIMITIVE, "107-2"));
-		entity.addProperty(new Property(null, "boundary", ValueType.GEOSPATIAL, new Polygon(Dimension.GEOMETRY, null, null,
-																									Arrays.asList(createPoint(111.91594413411923, 8.647767012238829), 
-																											createPoint(111.92532755014705, 8.649993803959857), 
-																											createPoint(111.92456211264368, 8.641787901828456), 
-																											createPoint(111.9159496908481, 8.640109602755247), 
-																											createPoint(111.9159496908481, 8.640109602755247)))));
-		entity.addProperty(new Property(null, "area", ValueType.PRIMITIVE, 0.38));
-		entity.addProperty(new Property(null, "shoreline_length", ValueType.PRIMITIVE, 4.72));
-		entity.addProperty(new Property(null, "road_length", ValueType.PRIMITIVE, 2.6));
-		entity.addProperty(new Property(null, "runway_length", ValueType.PRIMITIVE, 1.21));
-		entity.addProperty(new Property(null, "pier_number", ValueType.PRIMITIVE, 6));
-		entity.addProperty(new Property(null, "lighthouse_number", ValueType.PRIMITIVE, 1));
-		entity.addProperty(new Property(null, "building_number", ValueType.PRIMITIVE, 279));
-		entity.addProperty(new Property(null, "tide", ValueType.PRIMITIVE, 0.08));
-		entity.addProperty(new Property(null, "start_date", ValueType.PRIMITIVE, createDate("2017/12/2")));
-		entity.addProperty(new Property(null, "end_date", ValueType.PRIMITIVE, createDate("2018/3/18")));
-		entity.addProperty(new Property(null, "note", ValueType.PRIMITIVE, "南威島本期中移除大範圍的樹木，本次判釋發現 1 處較明顯變化之區域"));
-
+		
+		File file = new File(System.getProperty("user.home")+"/Desktop"+"/data"); //存取目前路徑
+		int global_row_num = 1; //此為所有資料表中的row個數
+		
+		if (file.isDirectory()) {
+			String[]all_file = file.list(); //得到路徑下所有檔案目錄
+			for(String filename:all_file) {
+				String filetype = filename.substring(filename.lastIndexOf(".")+1, filename.length());
+				if(filetype.equals("xlsx")) {//只存取xlsx檔案
+					FileInputStream xlsx = new FileInputStream(new File(System.getProperty("user.home")+"/Desktop"+"/data"+"//"+filename));
+					XSSFWorkbook workbook = new XSSFWorkbook(xlsx);
+					XSSFSheet sheet = workbook.getSheetAt(3);
+					int row_num = sheet.getLastRowNum()+1; //此為一個sheet中的row個數
+					for (int row_index=1; row_index<row_num; row_index++) {
+						Row row = sheet.getRow(row_index);
+						
+						entity = new Entity();
+						
+						entity.addProperty(new Property(null, "ID", ValueType.PRIMITIVE, global_row_num));//加入id屬性
+						
+						if (row.getCell(0)!=null) {
+							entity.addProperty(new Property(null, "code_island", ValueType.PRIMITIVE, row.getCell(0).getStringCellValue().trim()));
+						}
+						if (row.getCell(1)!=null) {
+							entity.addProperty(new Property(null, "code", ValueType.PRIMITIVE, row.getCell(1).getStringCellValue().trim()));
+						}
+						if (row.getCell(2)!=null) {
+							Matcher m = Pattern.compile("\\((([^)]+)\\))").matcher(row.getCell(2).toString());
+							if(m.find()) {
+								String polygon_list = m.group(1).toString().split("[\\(\\)]")[1];
+							    String[] polygon_tuple = polygon_list.split(",");
+							    List<Double> list = new ArrayList<Double>();
+							    
+							    for (String s:polygon_tuple) {
+							    	//System.out.println(s.toString().trim());
+							    	String clean_s = s.toString().trim();
+							    	String[] polygon_coord = clean_s.split(" ");
+							    	list.add(Double.parseDouble(polygon_coord[0]));
+							    	list.add(Double.parseDouble(polygon_coord[1]));
+							    }
+							    entity.addProperty(new Property(null, "boundary", ValueType.GEOSPATIAL, new Polygon(Dimension.GEOMETRY, null, null,
+										Arrays.asList(
+												createPoint(list.get(0), list.get(1)), 
+												createPoint(list.get(2), list.get(3)), 
+												createPoint(list.get(4), list.get(5)), 
+												createPoint(list.get(6), list.get(7)), 
+												createPoint(list.get(8), list.get(9))))));
+							}
+						}
+						if (row.getCell(3)!=null) {
+							entity.addProperty(new Property(null, "area", ValueType.PRIMITIVE, row.getCell(3).getNumericCellValue()));
+						}
+						if (row.getCell(4)!=null) {
+							entity.addProperty(new Property(null, "shoreline_length", ValueType.PRIMITIVE, row.getCell(4).getNumericCellValue()));
+						}
+						if (row.getCell(5)!=null) {
+							entity.addProperty(new Property(null, "hardstand_number", ValueType.PRIMITIVE, (int)row.getCell(5).getNumericCellValue()));
+						}
+						if (row.getCell(6)!=null) {
+							entity.addProperty(new Property(null, "road_length", ValueType.PRIMITIVE, row.getCell(6).getNumericCellValue()));
+						}
+						if (row.getCell(7)!=null) {
+							entity.addProperty(new Property(null, "airport_length", ValueType.PRIMITIVE, row.getCell(7).getNumericCellValue()));
+						}
+						if (row.getCell(8)!=null) {
+							entity.addProperty(new Property(null, "pier_number", ValueType.PRIMITIVE, (int)row.getCell(8).getNumericCellValue()));
+						}
+						if (row.getCell(9)!=null) {
+							entity.addProperty(new Property(null, "lighthouse_number", ValueType.PRIMITIVE, (int)row.getCell(9).getNumericCellValue()));
+						}
+						if (row.getCell(10)!=null) {
+							entity.addProperty(new Property(null, "building_number", ValueType.PRIMITIVE, (int)row.getCell(10).getNumericCellValue()));
+						}
+						if (row.getCell(11)!=null) {
+							entity.addProperty(new Property(null, "tide", ValueType.PRIMITIVE, row.getCell(11).getNumericCellValue()));
+						}
+						if (row.getCell(12)!=null) {
+							entity.addProperty(new Property(null, "start_time", ValueType.PRIMITIVE, row.getCell(12).getDateCellValue()));
+						}
+						if (row.getCell(13)!=null) {
+							entity.addProperty(new Property(null, "end_time", ValueType.PRIMITIVE, row.getCell(13).getDateCellValue()));
+						}
+						if (row.getCell(14)!=null) {
+							entity.addProperty(new Property(null, "note", ValueType.PRIMITIVE, row.getCell(14).getStringCellValue()));
+						}
+						if (row.getCell(15)!=null) {
+							entity.addProperty(new Property(null, "code_island", ValueType.PRIMITIVE, row.getCell(15).getStringCellValue()));
+						}
+						
+						entity.setType(DemoEdmProvider.ET_SESSION_FQN.getFullQualifiedNameAsString());
+					    entity.setId(createId(entity, "ID"));
+					    if(entity.getProperty("code_island")!=null && entity.getProperty("code")!=null
+					    		&& entity.getProperty("note")!=null) { //image常出現問題
+					    	sessionList.add(entity);
+					    	global_row_num++;
+					    }
+					}
+				}
+			}
+		}
 		
 		
-		entity.setType(DemoEdmProvider.ET_SESSION_FQN.getFullQualifiedNameAsString());
-	    entity.setId(createId(entity, "ID"));
-	    sessionList.add(entity);
-	    
-	    entity = new Entity();
-		entity.addProperty(new Property(null, "ID", ValueType.PRIMITIVE, 2));
-		entity.addProperty(new Property(null, "code_island", ValueType.PRIMITIVE, "SS039"));
-		entity.addProperty(new Property(null, "code", ValueType.PRIMITIVE, "107-3"));
-		entity.addProperty(new Property(null, "boundary", ValueType.GEOSPATIAL, new Polygon(Dimension.GEOMETRY, null, null,
-																									Arrays.asList(createPoint(111.91580190120246, 8.647830601727525), 
-																											createPoint(111.92521386996638, 8.64993289550065), 
-																											createPoint(111.92444032659306, 8.640372613359792), 
-																											createPoint(111.91570824482675, 8.640278557541768), 
-																											createPoint(111.91580190120246, 8.647830601727525)))));
-		entity.addProperty(new Property(null, "area", ValueType.PRIMITIVE, 0.38));
-		entity.addProperty(new Property(null, "shoreline_length", ValueType.PRIMITIVE, 4.95));
-		entity.addProperty(new Property(null, "road_length", ValueType.PRIMITIVE, 3.35));
-		entity.addProperty(new Property(null, "runway_length", ValueType.PRIMITIVE, 1.21));
-		entity.addProperty(new Property(null, "pier_number", ValueType.PRIMITIVE, 6));
-		entity.addProperty(new Property(null, "lighthouse_number", ValueType.PRIMITIVE, 1));
-		entity.addProperty(new Property(null, "building_number", ValueType.PRIMITIVE, 278));
-		entity.addProperty(new Property(null, "tide", ValueType.PRIMITIVE, 0.2));
-		entity.addProperty(new Property(null, "start_date", ValueType.PRIMITIVE, createDate("2018/5/11")));
-		entity.addProperty(new Property(null, "end_date", ValueType.PRIMITIVE, createDate("2018/5/11")));
-		entity.addProperty(new Property(null, "note", ValueType.PRIMITIVE, "海岸線長度受海水潮汐影響有些微變化，島礁陸域上建設工程積極進行中，新增永久性房屋及道路。"));
-
-		
-		
-		entity.setType(DemoEdmProvider.ET_SESSION_FQN.getFullQualifiedNameAsString());
-	    entity.setId(createId(entity, "ID"));
-	    sessionList.add(entity);
-	    
-	    entity = new Entity();
-		entity.addProperty(new Property(null, "ID", ValueType.PRIMITIVE, 3));
-		entity.addProperty(new Property(null, "code_island", ValueType.PRIMITIVE, "SS039"));
-		entity.addProperty(new Property(null, "code", ValueType.PRIMITIVE, "107-4"));
-		entity.addProperty(new Property(null, "boundary", ValueType.GEOSPATIAL, new Polygon(Dimension.GEOMETRY, null, null,
-																									Arrays.asList(createPoint(111.91488353840195, 8.645950797664721), 
-																											createPoint(111.92464666755879, 8.650081476311225), 
-																											createPoint(111.92613961418192, 8.646995774292275), 
-																											createPoint(111.91659870119541, 8.639265618891692), 
-																											createPoint(111.91488353840195, 8.645950797664721)))));
-		entity.addProperty(new Property(null, "area", ValueType.PRIMITIVE, 0.37));
-		entity.addProperty(new Property(null, "shoreline_length", ValueType.PRIMITIVE, 4.82));
-		entity.addProperty(new Property(null, "road_length", ValueType.PRIMITIVE, 3.26));
-		entity.addProperty(new Property(null, "runway_length", ValueType.PRIMITIVE, 1.21));
-		entity.addProperty(new Property(null, "pier_number", ValueType.PRIMITIVE, 6));
-		entity.addProperty(new Property(null, "lighthouse_number", ValueType.PRIMITIVE, 1));
-		entity.addProperty(new Property(null, "building_number", ValueType.PRIMITIVE, 285));
-		entity.addProperty(new Property(null, "tide", ValueType.PRIMITIVE, -0.02));
-		entity.addProperty(new Property(null, "start_date", ValueType.PRIMITIVE, createDate("2018/7/22")));
-		entity.addProperty(new Property(null, "end_date", ValueType.PRIMITIVE, createDate("2018/7/22")));
-		entity.addProperty(new Property(null, "note", ValueType.PRIMITIVE, "無填海造陸工程進行；島礁上人工建設工程積極進行中,永久性房屋道路(C)、道路(C)及其他地物類別(G)有明顯變遷"));
-
-		
-		
-		entity.setType(DemoEdmProvider.ET_SESSION_FQN.getFullQualifiedNameAsString());
-	    entity.setId(createId(entity, "ID"));
-	    sessionList.add(entity);
 	}
 
 	private URI createId(Entity entity, String idPropertyName) {

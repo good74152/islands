@@ -61,6 +61,7 @@ public class DemoEdmProvider extends CsdlAbstractEdmProvider {
 		      CsdlProperty boundary = new CsdlProperty().setName("boundary").setType(EdmPrimitiveTypeKind.GeometryPolygon.getFullQualifiedName());
 		      CsdlProperty area = new CsdlProperty().setName("area").setType(EdmPrimitiveTypeKind.Double.getFullQualifiedName());
 		      CsdlProperty shoreline_length = new CsdlProperty().setName("shoreline_length").setType(EdmPrimitiveTypeKind.Double.getFullQualifiedName());
+		      CsdlProperty hardstand_number = new CsdlProperty().setName("hardstand_number").setType(EdmPrimitiveTypeKind.Int32.getFullQualifiedName());
 		      CsdlProperty road_length = new CsdlProperty().setName("road_length").setType(EdmPrimitiveTypeKind.Double.getFullQualifiedName());
 		      CsdlProperty airport_length = new CsdlProperty().setName("airport_length").setType(EdmPrimitiveTypeKind.Double.getFullQualifiedName());
 		      CsdlProperty pier_number = new CsdlProperty().setName("pier_number").setType(EdmPrimitiveTypeKind.Int32.getFullQualifiedName());
@@ -87,7 +88,7 @@ public class DemoEdmProvider extends CsdlAbstractEdmProvider {
 		      entityType = new CsdlEntityType();
 		      entityType.setName(ET_ISLAND_NAME);
 		      entityType.setProperties(Arrays.asList(id, code, name_tw, name_cn, location, 
-		    		  								description, boundary, area, shoreline_length, 
+		    		  								description, boundary, area, shoreline_length, hardstand_number,
 		    		  								road_length, airport_length, pier_number, lighthouse_number,
 		    		  								building_number, tide, update));
 		      entityType.setKey(Arrays.asList(propertyRef));
@@ -168,6 +169,7 @@ public class DemoEdmProvider extends CsdlAbstractEdmProvider {
 			 CsdlProperty boundary = new CsdlProperty().setName("boundary").setType(EdmPrimitiveTypeKind.GeometryPolygon.getFullQualifiedName());
 			 CsdlProperty area = new CsdlProperty().setName("area").setType(EdmPrimitiveTypeKind.Double.getFullQualifiedName());
 			 CsdlProperty shoreline_length = new CsdlProperty().setName("shoreline_length").setType(EdmPrimitiveTypeKind.Double.getFullQualifiedName());
+			 CsdlProperty hardstand_number = new CsdlProperty().setName("hardstand_number").setType(EdmPrimitiveTypeKind.Int32.getFullQualifiedName());
 			 CsdlProperty road_length = new CsdlProperty().setName("road_length").setType(EdmPrimitiveTypeKind.Double.getFullQualifiedName());
 			 CsdlProperty airport_length = new CsdlProperty().setName("airport_length").setType(EdmPrimitiveTypeKind.Double.getFullQualifiedName());
 			 CsdlProperty pier_number = new CsdlProperty().setName("pier_number").setType(EdmPrimitiveTypeKind.Int32.getFullQualifiedName());
@@ -177,6 +179,7 @@ public class DemoEdmProvider extends CsdlAbstractEdmProvider {
 			 CsdlProperty start_date = new CsdlProperty().setName("start_date").setType(EdmPrimitiveTypeKind.Date.getFullQualifiedName());
 			 CsdlProperty end_date = new CsdlProperty().setName("end_date").setType(EdmPrimitiveTypeKind.Date.getFullQualifiedName());
 			 CsdlProperty note = new CsdlProperty().setName("note").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
+			 CsdlProperty code_image = new CsdlProperty().setName("code_image").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
 			  
 			 CsdlPropertyRef propertyRef = new CsdlPropertyRef();
 			 propertyRef.setName("ID");
@@ -193,9 +196,9 @@ public class DemoEdmProvider extends CsdlAbstractEdmProvider {
 			 entityType = new CsdlEntityType();
 			 entityType.setName(ET_SESSION_NAME);
 			 entityType.setProperties(Arrays.asList(id, code_island, code, boundary, area, 
-			  	  								shoreline_length, road_length, airport_length, pier_number, 
+			  	  								shoreline_length, hardstand_number,road_length, airport_length, pier_number, 
 		 		  								lighthouse_number, building_number, tide, start_date, 
-		   		  								end_date, note));
+		   		  								end_date, note, code_image));
 			entityType.setKey(Arrays.asList(propertyRef));
 			entityType.setNavigationProperties(navPropList);
 		    }

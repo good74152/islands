@@ -19,6 +19,9 @@
 package myservice.mynamespace.service;
 
 import java.io.InputStream;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
@@ -31,6 +34,7 @@ import org.apache.olingo.commons.api.data.EntityCollection;
 import org.apache.olingo.commons.api.edm.EdmEntitySet;
 import org.apache.olingo.commons.api.edm.EdmEntityType;
 import org.apache.olingo.commons.api.edm.EdmNavigationProperty;
+import org.apache.olingo.commons.api.edm.EdmProperty;
 import org.apache.olingo.commons.api.format.ContentType;
 import org.apache.olingo.commons.api.http.HttpHeader;
 import org.apache.olingo.commons.api.http.HttpStatusCode;
@@ -45,14 +49,20 @@ import org.apache.olingo.server.api.serializer.ODataSerializer;
 import org.apache.olingo.server.api.serializer.SerializerException;
 import org.apache.olingo.server.api.serializer.SerializerResult;
 import org.apache.olingo.server.api.uri.UriInfo;
+import org.apache.olingo.server.api.uri.UriInfoResource;
 import org.apache.olingo.server.api.uri.UriParameter;
 import org.apache.olingo.server.api.uri.UriResource;
 import org.apache.olingo.server.api.uri.UriResourceEntitySet;
 import org.apache.olingo.server.api.uri.UriResourceNavigation;
+import org.apache.olingo.server.api.uri.UriResourcePrimitiveProperty;
 import org.apache.olingo.server.api.uri.queryoption.CountOption;
+import org.apache.olingo.server.api.uri.queryoption.OrderByItem;
+import org.apache.olingo.server.api.uri.queryoption.OrderByOption;
 import org.apache.olingo.server.api.uri.queryoption.SelectOption;
 import org.apache.olingo.server.api.uri.queryoption.SkipOption;
 import org.apache.olingo.server.api.uri.queryoption.TopOption;
+import org.apache.olingo.server.api.uri.queryoption.expression.Expression;
+import org.apache.olingo.server.api.uri.queryoption.expression.Member;
 
 public class DemoEntityCollectionProcessor implements EntityCollectionProcessor {
 
@@ -140,6 +150,47 @@ public class DemoEntityCollectionProcessor implements EntityCollectionProcessor 
 	    // 根據query option調整result set
 	    List<Entity> entityList = responseEntityCollection.getEntities();
 	    EntityCollection returnEntityCollection = new EntityCollection();
+	    
+	    // handle $orderby
+	    OrderByOption orderByOption = uriInfo.getOrderByOption();
+	    if (orderByOption != null) {
+	    	List<OrderByItem> orderItemList = orderByOption.getOrders();
+	    	final OrderByItem orderByItem = orderItemList.get(0);
+	    	Expression expression = orderByItem.getExpression();
+	    	if(expression instanceof Member){
+	    		UriInfoResource resourcePath = ((Member)expression).getResourcePath();
+	    		uriResource = resourcePath.getUriResourceParts().get(0);
+	    		if (uriResource instanceof UriResourcePrimitiveProperty) {
+	    			EdmProperty edmProperty = ((UriResourcePrimitiveProperty)uriResource).getProperty();
+	    			final String sortPropertyName = edmProperty.getName();
+	    			
+	    			Collections.sort(entityList, new Comparator<Entity>() {
+	    				
+	    				public int compare(Entity entity1, Entity entity2) {
+	    					int compareResult = 0;
+	    				
+	    					if(sortPropertyName.equals("end_date")){
+	    						Date date1 = (Date) entity1.getProperty(sortPropertyName).getValue();
+	    						Date date2 = (Date) entity2.getProperty(sortPropertyName).getValue();
+	    						compareResult = date1.compareTo(date2);
+	    					}
+	    					else if(sortPropertyName.equals("time")){
+	    						Date date1 = (Date) entity1.getProperty(sortPropertyName).getValue();
+	    						Date date2 = (Date) entity2.getProperty(sortPropertyName).getValue();
+	    						compareResult = date1.compareTo(date2);
+	    					}
+	    					if (orderByItem.isDescending()) {
+	    						return - compareResult;
+	    					}
+	    				
+	    					return compareResult;
+	    				}
+	    		
+	    			});
+	    		}
+	    	}
+	    }
+	    
 	    
 	    // handle $select
 	    SelectOption selectOption = uriInfo.getSelectOption();
